@@ -7,10 +7,10 @@ const http = require('http')
 const https = require('https')
 
 require('log-timestamp');
-
-console.log("Server : " + process.env.NODE_ENV);
+require('dotenv').config()
+let { client, userWS, passWS, NODE_ENV } = process.env
+console.log("Server : " + NODE_ENV);
 const hostport = 3012;
-const host_natip = node_env["host_natip"];
 
 evntCnt = 0;
 
@@ -35,7 +35,6 @@ server.listen({
     exclusive: true
 
 });
-console.log(node_env);
 console.log('server listening on ' + 'port: ' + hostport);
 
 evntCnt = 0;
@@ -107,11 +106,11 @@ async function getToken() {
             method: 'POST',
             url: `http://10.25.88.173:8080/api/auth`,
             auth: {
-                username: 'bkebhana',
-                password: 'b9e6h4n4'
+                username: userWS,
+                password: passWS
             },
             headers: {
-                client_id: 'keb_hana'
+                client_id: client
             }
         })
 
