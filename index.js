@@ -191,7 +191,7 @@ async function callPPATKv2(msg) {
             let rmsg;
             if(f.resp.message == 'Data Found'){
                 rmsg = f.orig.substring(304, 389);
-                rmsg = rmsg + JSON.stringify(f.resp.data)
+                rmsg = rmsg + JSON.stringify(f.resp)
             } else if (f.resp.message == 'Data Not Found'){
                 rmsg = f.orig.substring(304, 380);
                 rmsg = rmsg + "09";
