@@ -147,7 +147,6 @@ async function callPPATKv2(msg) {
         return;
     }
     if (nik.length !== 16
-        || nik[0] === '0'
         || nik.substring(nik.length - 4, nik.length) === '0000'
         || isNaN(nik)
     ) {
