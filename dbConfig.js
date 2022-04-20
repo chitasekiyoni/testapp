@@ -6,8 +6,8 @@ const pool = new Pool({
     database: 'postgres',
     password: 'changeme',
     port: 5432,
-    min: 1,
-    max: 2,
+    min: 4,
+    max: 10,
     idleTimeoutMillis: 1000,
     keepAlive:true
 })
