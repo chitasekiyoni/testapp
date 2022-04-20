@@ -5,6 +5,7 @@ const axios = require('axios');
 const crypto = require('crypto');
 const http = require('http')
 const https = require('https')
+const pool = require('./dbConfig');
 
 require('log-timestamp');
 require('dotenv').config()
@@ -115,15 +116,43 @@ async function getToken() {
         })
 
         console.log(`${new Date()} => TOKEN GENERATED ${getToken.data.access_token}`);
-        return getToken.data.access_token
+
+        return getToken
     } catch (error) {
         console.log(`${new Date()} => ERROR: ${error.response ? error.response.status : error} ${error.response ? error.response.data.message : ''}`);
+        return error.response ? error.response.data.message : ''
+        // let errorStsToken = await queryDB({action: 'update', idTrx, resp_cd: `99`, resp_val: `${error.response ? error.response.data.message : error}`, i_log_data: `${JSON.stringify(error.response ? error.response.data.message : {})}`, bsns_cd: 'AUT'})
+        // await inputDB(errorStsToken)
     }
 }
 
+
+
 async function callPPATKv2(msg) {
-    let img = msg.split("|")[2]
-    let token = await getToken()
+    let client
+    let clientError = null;
+    
+    try {
+        client = await pool.connect()
+    } catch (error) {
+        console.log(error);
+    }
+
+    let trace_no = msg.substring(362, 368)
+    let rrn = msg.substring(368, 380)
+
+    if (client != undefined){
+        try {
+            let o_log_auth_query = `INSERT INTO MDW_EOH_HIS (trx_id, bsns_cd, ref_id, sts, switch_id, url, methode, interval_tm, o_log_data, reg_emp_no, reg_dt, reg_tm, upd_emp_no, hbs_o_log_data)
+            values ('${trace_no}', 'AUT', '${rrn}', '0', 'PEPP', 
+            'http://10.25.88.173:8080/api/auth', 'POST', '30', 'keb_hana', 'OCP', current_date, current_time, 'OCP', null)` 
+            await client.query(o_log_auth_query);
+        } catch (err) {
+            clientError = err;
+        } finally {
+            client.off('error', (error) => console.log(error));
+        }
+    }
 
     console.log("msg ppatk: " + msg);
     let inpReqParam = msg.split("|")
@@ -140,10 +169,13 @@ async function callPPATKv2(msg) {
             imsg = imsg + "29";
         }
         imsg = imsg + f.orig.substring(382, 389);
-        imsg = imsg + JSON.stringify({'message':'NIK Empty'})
+        imsg = imsg + JSON.stringify({ 'message': 'NIK Empty' })
         imsg = strf(imsg.length + 4).padLeft(4, '0').s + imsg;
         console.log("Returning : " + imsg);
         hanaconsResponded.emit('ppatkpepv2', imsg);
+        if (client != undefined){ 
+            await client.release()
+        }
         return;
     }
     if (nik.length !== 16
@@ -157,27 +189,58 @@ async function callPPATKv2(msg) {
             imsg = imsg + "19";
         }
         imsg = imsg + f.orig.substring(382, 389);
-        imsg = imsg + JSON.stringify({'message':'NIK Tidak 16 Digit'})
-        imsg = strf(imsg.length + 4).padLeft(4, '0').s + imsg;    
+        imsg = imsg + JSON.stringify({ 'message': 'NIK Tidak 16 Digit' })
+        imsg = strf(imsg.length + 4).padLeft(4, '0').s + imsg;
         console.log("Returning : " + imsg);
         hanaconsResponded.emit('ppatkpepv2', imsg);
+        if (client != undefined){ 
+            await client.release()
+        }
         return;
     }
 
+    let token = await getToken()
+
+    if (client != undefined){
+        try {
+            let i_log_auth_query = `update mdw_eoh_his 
+            set recv_dt = current_date, sts='1', resp_cd = '00', recv_tm = current_time, resp_val = '${token.data ? token.data.access_token : 'Generate Token Failed'}', ${token.data && 'i_log_data = ' + "'" + JSON.stringify(token.data) + "'"} , upd_dt = current_date, upd_tm = current_time
+            where trx_id = '${trace_no}' and bsns_cd = 'AUT'`
+            await client.query(i_log_auth_query);
+        } catch (err) {
+            clientError = err;
+        } finally {
+            client.off('error', (error) => console.log(error));
+        }
+    }
+    
+    let tokenAuth = token.data && token.data.access_token
     let options = {
         path: `/api/v1/data/nik/${nik}`,
         host: '10.25.88.173',
         port: '8081',
         method: 'GET',
         headers: {
-            'Authorization': 'Bearer ' + token,
-          },
+            'Authorization': 'Bearer ' + tokenAuth,
+        },
     };
-
+    if (client != undefined){
+        try {
+            let o_log_data_query = `INSERT INTO MDW_EOH_HIS (trx_id, bsns_cd, ref_id, sts, switch_id, url, methode, interval_tm, o_log_data, reg_emp_no, reg_dt, reg_tm, upd_emp_no, hbs_o_log_data)
+            values ('${trace_no}', 'DAT', '${rrn}', '0', 'PEPP', 
+            'http://10.25.88.173:8081/api/v1/data/nik/${nik}', 'GET', '30', '${nik}', 'OCP', current_date, current_time, 'OCP', '${msg}');` 
+            await client.query(o_log_data_query);
+        } catch (err) {
+            clientError = err;
+        } finally {
+            client.off('error', (error) => console.log(error));
+        }
+    }
+    
     var post_req = http.request(options, function (res) {
         let imsg;
         res.setEncoding('utf8');
-        res.on('data', function (d) {
+        res.on('data', async function (d) {
             console.log('response ' + d)
             try {
                 tmpc = JSON.parse(d);
@@ -188,37 +251,53 @@ async function callPPATKv2(msg) {
                 post_req.end()
             }
             let rmsg;
-            if(f.resp.message == 'Data Found'){
+            if (f.resp.message == 'Data Found') {
                 rmsg = f.orig.substring(304, 389);
                 rmsg = rmsg + JSON.stringify(f.resp)
-            } else if (f.resp.message == 'Data Not Found'){
+            } else if (f.resp.message == 'Data Not Found') {
                 rmsg = f.orig.substring(304, 380);
                 rmsg = rmsg + "09";
                 rmsg = rmsg + f.orig.substring(382, 389);
-                rmsg = rmsg + JSON.stringify({'message':'Data Not Found'})
-            } else if (f.resp.message == 'Invalid NIK Format'){
+                rmsg = rmsg + JSON.stringify({ 'message': 'Data Not Found' })
+            } else if (f.resp.message == 'Invalid NIK Format') {
                 rmsg = f.orig.substring(304, 380);
                 rmsg = rmsg + "39";
                 rmsg = rmsg + f.orig.substring(382, 389);
-                rmsg = rmsg + JSON.stringify({'message':'Invalid NIK Format'})
-            } else if (f.resp.message == 'Token Unidentified' || f.resp.message == 'Authorization Failed'){
+                rmsg = rmsg + JSON.stringify({ 'message': 'Invalid NIK Format' })
+            } else if (f.resp.message == 'Token Unidentified' || f.resp.message == 'Authorization Failed') {
                 rmsg = f.orig.substring(304, 380);
                 rmsg = rmsg + "99";
                 rmsg = rmsg + f.orig.substring(382, 389);
-                rmsg = rmsg + JSON.stringify({'message':'Token Unidentified'})
-            } else if (f.resp.message == 'Client Reach Max Hits'){
+                rmsg = rmsg + JSON.stringify({ 'message': 'Token Unidentified' })
+            } else if (f.resp.message == 'Client Reach Max Hits') {
                 rmsg = f.orig.substring(304, 380);
                 rmsg = rmsg + "49";
                 rmsg = rmsg + f.orig.substring(382, 389);
-                rmsg = rmsg + JSON.stringify({'message':'Client Reach Max Hits'})
+                rmsg = rmsg + JSON.stringify({ 'message': 'Client Reach Max Hits' })
             } else {
                 rmsg = f.orig.substring(304, 380);
                 rmsg = rmsg + "50";
                 rmsg = rmsg + f.orig.substring(382, 389);
-                rmsg = rmsg + JSON.stringify({'message':'Error'})
-            } 
+                rmsg = rmsg + JSON.stringify({ 'message': 'Error' })
+            }
             rmsg = strf(rmsg.length + 4).padLeft(4, '0').s + rmsg;
             console.log("Returning : " + rmsg);
+
+            if (client != undefined){
+                try {
+                    let i_log_data_query = `update mdw_eoh_his 
+                    set recv_dt = current_date, sts='1', resp_cd = '${rmsg.substring(80, 82)}', recv_tm = current_time, resp_val = '${rmsg.substring(89)}', i_log_data = '${d}', upd_dt = current_date, upd_tm = current_time, hbs_i_log_data = '${rmsg}'
+                    where trx_id = '${trace_no}' and bsns_cd = 'DAT'`
+                    await client.query(i_log_data_query);
+                } catch (err) {
+                    clientError = err;
+                } finally {
+                    client.off('error', (error) => console.log(error));
+                }
+            }
+            if (client != undefined){ 
+                await client.release()
+            }
             hanaconsResponded.emit('ppatkpepv2', rmsg);
         });
     })
