@@ -205,7 +205,7 @@ async function callPPATKv2(msg) {
         try {
             let i_log_auth_query = `update mdw_eoh_his 
             set recv_dt = current_date, sts='1', resp_cd = '00', recv_tm = current_time, resp_val = '${token.data ? token.data.access_token : 'Generate Token Failed'}', ${token.data && 'i_log_data = ' + "'" + JSON.stringify(token.data) + "'"} , upd_dt = current_date, upd_tm = current_time
-            where trx_id = '${trace_no}' and bsns_cd = 'AUT'`
+            where trx_id = '${trace_no}' and bsns_cd = 'AUT' and switch_id = 'PEPP' and trx_dt = current_date`
             await client.query(i_log_auth_query);
         } catch (err) {
             clientError = err;
@@ -287,7 +287,7 @@ async function callPPATKv2(msg) {
                 try {
                     let i_log_data_query = `update mdw_eoh_his 
                     set recv_dt = current_date, sts='1', resp_cd = '${rmsg.substring(80, 82)}', recv_tm = current_time, resp_val = '${rmsg.substring(89)}', i_log_data = '${d}', upd_dt = current_date, upd_tm = current_time, hbs_i_log_data = '${rmsg}'
-                    where trx_id = '${trace_no}' and bsns_cd = 'DAT'`
+                    where trx_id = '${trace_no}' and bsns_cd = 'DAT' and switch_id = 'PEPP' and trx_dt = current_date`
                     await client.query(i_log_data_query);
                 } catch (err) {
                     clientError = err;
