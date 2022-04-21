@@ -141,19 +141,6 @@ async function callPPATKv2(msg) {
     let trace_no = msg.substring(362, 368)
     let rrn = msg.substring(368, 380)
 
-    if (client != undefined){
-        try {
-            let o_log_auth_query = `INSERT INTO MDW_EOH_HIS (trx_id, bsns_cd, ref_id, sts, switch_id, url, methode, interval_tm, o_log_data, reg_emp_no, reg_dt, reg_tm, upd_emp_no, hbs_o_log_data)
-            values ('${trace_no}', 'AUT', '${rrn}', '0', 'PEPP', 
-            'http://10.25.88.173:8080/api/auth', 'POST', '30', 'keb_hana', 'OCP', current_date, current_time, 'OCP', null)` 
-            await client.query(o_log_auth_query);
-        } catch (err) {
-            clientError = err;
-        } finally {
-            client.off('error', (error) => console.log(error));
-        }
-    }
-
     console.log("msg ppatk: " + msg);
     let inpReqParam = msg.split("|")
     let nik = inpReqParam[1].trim()
@@ -197,6 +184,20 @@ async function callPPATKv2(msg) {
             await client.release()
         }
         return;
+    }
+
+    
+    if (client != undefined){
+        try {
+            let o_log_auth_query = `INSERT INTO MDW_EOH_HIS (trx_id, bsns_cd, ref_id, sts, switch_id, url, methode, interval_tm, o_log_data, reg_emp_no, reg_dt, reg_tm, upd_emp_no, hbs_o_log_data)
+            values ('${trace_no}', 'AUT', '${rrn}', '0', 'PEPP', 
+            'http://10.25.88.173:8080/api/auth', 'POST', '30', 'keb_hana', 'OCP', current_date, current_time, 'OCP', null)` 
+            await client.query(o_log_auth_query);
+        } catch (err) {
+            clientError = err;
+        } finally {
+            client.off('error', (error) => console.log(error));
+        }
     }
 
     let token = await getToken()
