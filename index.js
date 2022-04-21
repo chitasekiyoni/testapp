@@ -146,6 +146,19 @@ async function callPPATKv2(msg) {
     let nik = inpReqParam[1].trim()
     console.log(nik, 'NIK');
 
+    if (client != undefined){
+        try {
+            let o_log_auth_query = `INSERT INTO MDW_EOH_HIS (trx_id, bsns_cd, ref_id, sts, switch_id, url, methode, interval_tm, o_log_data, reg_emp_no, reg_dt, reg_tm, upd_emp_no, hbs_o_log_data)
+            values ('${trace_no}', 'AUT', '${rrn}', '0', 'PEPP', 
+            'http://10.25.88.173:8080/api/auth', 'POST', '30', ${nik ? nik : null}, 'OCP', current_date, current_time, 'OCP', null)` 
+            await client.query(o_log_auth_query);
+        } catch (err) {
+            clientError = err;
+        } finally {
+            client.off('error', (error) => console.log(error));
+        }
+    }
+
     let imsg;
     let f;
     if (nik === undefined || nik === '') {
@@ -159,10 +172,22 @@ async function callPPATKv2(msg) {
         imsg = imsg + JSON.stringify({ 'message': 'NIK Empty' })
         imsg = strf(imsg.length + 4).padLeft(4, '0').s + imsg;
         console.log("Returning : " + imsg);
-        hanaconsResponded.emit('ppatkpepv2', imsg);
+        if (client != undefined){
+            try {
+                let i_log_auth_query = `update mdw_eoh_his 
+                set recv_dt = current_date, sts='1', resp_cd = '29', recv_tm = current_time, resp_val = ${`'${JSON.stringify({ 'message': 'NIK Empty' })}'`}, i_log_data = ${`'${JSON.stringify({ 'message': 'NIK Empty' })}'`}, upd_dt = current_date, upd_tm = current_time
+                where trx_id = '${trace_no}' and bsns_cd = 'AUT' and switch_id = 'PEPP' and trx_dt = current_date`
+                await client.query(i_log_auth_query);
+            } catch (err) {
+                clientError = err;
+            } finally {
+                client.off('error', (error) => console.log(error));
+            }
+        }
         if (client != undefined){ 
             await client.release()
         }
+        hanaconsResponded.emit('ppatkpepv2', imsg);
         return;
     }
     if (nik.length !== 16
@@ -179,25 +204,23 @@ async function callPPATKv2(msg) {
         imsg = imsg + JSON.stringify({ 'message': 'NIK Tidak 16 Digit' })
         imsg = strf(imsg.length + 4).padLeft(4, '0').s + imsg;
         console.log("Returning : " + imsg);
-        hanaconsResponded.emit('ppatkpepv2', imsg);
+        if (client != undefined){
+            try {
+                let i_log_auth_query = `update mdw_eoh_his 
+                set recv_dt = current_date, sts='1', resp_cd = '19', recv_tm = current_time, resp_val = ${`'${JSON.stringify({ 'message': 'NIK Tidak 16 Digit' })}'`}, i_log_data = ${`'${JSON.stringify({ 'message': 'NIK Tidak 16 Digit' })}'`}, upd_dt = current_date, upd_tm = current_time
+                where trx_id = '${trace_no}' and bsns_cd = 'AUT' and switch_id = 'PEPP' and trx_dt = current_date`
+                await client.query(i_log_auth_query);
+            } catch (err) {
+                clientError = err;
+            } finally {
+                client.off('error', (error) => console.log(error));
+            }
+        }
         if (client != undefined){ 
             await client.release()
         }
+        hanaconsResponded.emit('ppatkpepv2', imsg);
         return;
-    }
-
-    
-    if (client != undefined){
-        try {
-            let o_log_auth_query = `INSERT INTO MDW_EOH_HIS (trx_id, bsns_cd, ref_id, sts, switch_id, url, methode, interval_tm, o_log_data, reg_emp_no, reg_dt, reg_tm, upd_emp_no, hbs_o_log_data)
-            values ('${trace_no}', 'AUT', '${rrn}', '0', 'PEPP', 
-            'http://10.25.88.173:8080/api/auth', 'POST', '30', 'keb_hana', 'OCP', current_date, current_time, 'OCP', null)` 
-            await client.query(o_log_auth_query);
-        } catch (err) {
-            clientError = err;
-        } finally {
-            client.off('error', (error) => console.log(error));
-        }
     }
 
     let token = await getToken()
