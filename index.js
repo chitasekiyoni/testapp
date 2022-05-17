@@ -147,8 +147,8 @@ async function callPPATKv2(msg) {
 
     if (client != undefined){
         try {
-            let o_log_auth_query = `INSERT INTO MDW_EOH_HIS (trx_id, bsns_cd, ref_id, sts, switch_id, url, methode, interval_tm, o_log_data, reg_emp_no, reg_dt, reg_tm, upd_emp_no, hbs_o_log_data)
-            values ('${trace_no}', 'AUT', '${rrn}', '0', 'PEPP', 
+            let o_log_auth_query = `INSERT INTO MDW_EOH_HIS (trx_id, bsns_cd, ref_id, sts, switch_id, trx_cd, hbs_trx_cd, url, methode, interval_tm, o_log_data, reg_emp_no, reg_dt, reg_tm, upd_emp_no, hbs_o_log_data)
+            values ('${trace_no}', 'AUT', '${rrn}', '0', 'PATK', '#IQPATK', '#IQPATK',
             'http://10.25.88.173:8080/api/auth', 'POST', '30', ${nik ? nik : null}, 'OCP', current_date, current_time, 'OCP', null)` 
             await client.query(o_log_auth_query);
         } catch (err) {
@@ -175,7 +175,7 @@ async function callPPATKv2(msg) {
             try {
                 let i_log_auth_query = `update mdw_eoh_his 
                 set recv_dt = current_date, sts='1', resp_cd = '29', recv_tm = current_time, resp_val = ${`'${JSON.stringify({ 'message': 'NIK Empty' })}'`}, i_log_data = ${`'${JSON.stringify({ 'message': 'NIK Empty' })}'`}, upd_dt = current_date, upd_tm = current_time
-                where trx_id = '${trace_no}' and bsns_cd = 'AUT' and switch_id = 'PEPP' and trx_dt = current_date`
+                where trx_id = '${trace_no}' and bsns_cd = 'AUT' and switch_id = 'PATK' and trx_dt = current_date`
                 await client.query(i_log_auth_query);
             } catch (err) {
                 clientError = err;
@@ -207,7 +207,7 @@ async function callPPATKv2(msg) {
             try {
                 let i_log_auth_query = `update mdw_eoh_his 
                 set recv_dt = current_date, sts='1', resp_cd = '19', recv_tm = current_time, resp_val = ${`'${JSON.stringify({ 'message': 'NIK Tidak 16 Digit' })}'`}, i_log_data = ${`'${JSON.stringify({ 'message': 'NIK Tidak 16 Digit' })}'`}, upd_dt = current_date, upd_tm = current_time
-                where trx_id = '${trace_no}' and bsns_cd = 'AUT' and switch_id = 'PEPP' and trx_dt = current_date`
+                where trx_id = '${trace_no}' and bsns_cd = 'AUT' and switch_id = 'PATK' and trx_dt = current_date`
                 await client.query(i_log_auth_query);
             } catch (err) {
                 clientError = err;
@@ -228,7 +228,7 @@ async function callPPATKv2(msg) {
         try {
             let i_log_auth_query = `update mdw_eoh_his 
             set recv_dt = current_date, sts='1', resp_cd = ${token.data ? `'00'` : `'99'`}, recv_tm = current_time, resp_val = '${token.data ? token.data.access_token : 'Generate Token Failed'}', i_log_data =  ${token.data ? `'${JSON.stringify(token.data)}'` : token ? `'${token}'` : 'null'} , upd_dt = current_date, upd_tm = current_time
-            where trx_id = '${trace_no}' and bsns_cd = 'AUT' and switch_id = 'PEPP' and trx_dt = current_date`
+            where trx_id = '${trace_no}' and bsns_cd = 'AUT' and switch_id = 'PATK' and trx_dt = current_date`
             await client.query(i_log_auth_query);
         } catch (err) {
             clientError = err;
@@ -249,8 +249,8 @@ async function callPPATKv2(msg) {
     };
     if (client != undefined){
         try {
-            let o_log_data_query = `INSERT INTO MDW_EOH_HIS (trx_id, bsns_cd, ref_id, sts, switch_id, url, methode, interval_tm, o_log_data, reg_emp_no, reg_dt, reg_tm, upd_emp_no, hbs_o_log_data)
-            values ('${trace_no}', 'DAT', '${rrn}', '0', 'PEPP', 
+            let o_log_data_query = `INSERT INTO MDW_EOH_HIS (trx_id, bsns_cd, ref_id, sts, switch_id, trx_cd, hbs_trx_cd, url, methode, interval_tm, o_log_data, reg_emp_no, reg_dt, reg_tm, upd_emp_no, hbs_o_log_data)
+            values ('${trace_no}', 'DAT', '${rrn}', '0', 'PATK', '#IQPATK', '#IQPATK',
             'http://10.25.88.173:8081/api/v1/data/nik/${nik}', 'GET', '30', '${nik}', 'OCP', current_date, current_time, 'OCP', '${msg}');` 
             await client.query(o_log_data_query);
         } catch (err) {
@@ -310,7 +310,7 @@ async function callPPATKv2(msg) {
                 try {
                     let i_log_data_query = `update mdw_eoh_his 
                     set recv_dt = current_date, sts='1', resp_cd = '${rmsg.substring(80, 82)}', recv_tm = current_time, resp_val = '${rmsg.substring(89)}', i_log_data = '${d}', upd_dt = current_date, upd_tm = current_time, hbs_i_log_data = '${rmsg}'
-                    where trx_id = '${trace_no}' and bsns_cd = 'DAT' and switch_id = 'PEPP' and trx_dt = current_date`
+                    where trx_id = '${trace_no}' and bsns_cd = 'DAT' and switch_id = 'PATK' and trx_dt = current_date`
                     await client.query(i_log_data_query);
                 } catch (err) {
                     clientError = err;
