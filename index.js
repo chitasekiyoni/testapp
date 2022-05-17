@@ -101,41 +101,8 @@ server.on('connection', (e) => {
     });
 });
 
-async function queryDB(param) {
-    return (param.action == 'insert') ? `INSERT INTO MDW_EOH_HIS (trx_id, bsns_cd, ref_id, sts, switch_id, url, methode, interval_tm, o_log_data, reg_emp_no, reg_dt, reg_tm, upd_emp_no)
-            values ('${param.idTrx}', '${param.bsns_cd}', '${param.idTrx}', '0', 'PEPP', 
-            '${param.url}', '${param.method}', '30', '${param.o_log_data}', 'OCP', current_date, current_time, 'OCP')` : 
-            `update mdw_eoh_his 
-            set recv_dt = current_date, sts='1', resp_cd = '${param.resp_cd}', recv_tm = current_time, resp_val = '${param.resp_val}', i_log_data = '${param.i_log_data}', upd_dt = current_date, upd_tm = current_time 
-            where trx_id = '${param.idTrx}' and bsns_cd = '${param.bsns_cd}'`
-}
-
-async function inputDB(payload){
-    try {
-        clientPG = await pool.connect()
-    } catch (error) {
-        console.log(error);
-    }
-
-    if (clientPG != undefined){
-        try {
-            await clientPG.query(payload);
-        } catch (err) {
-            console.log(err);
-        } finally {
-            clientPG.off('error', (error) => console.log(error));
-        }
-    }
-
-    if (clientPG != undefined){
-        await clientPG.release()
-    }
-}
-
 async function getToken(idTrx) {
     try {
-        let insertStsToken = await queryDB({action: 'insert', idTrx, url: 'http://10.25.88.173:8080/api/auth', bsns_cd: 'AUT', method: 'POST', o_log_data: client})
-        await inputDB(insertStsToken)
 
         let getToken = await axios({
             method: 'POST',
@@ -155,8 +122,6 @@ async function getToken(idTrx) {
     } catch (error) {
         console.log(`${new Date()} => ERROR: ${error.response ? error.response.status : error} ${error.response ? error.response.data.message : ''}`);
         return error
-        // let errorStsToken = await queryDB({action: 'update', idTrx, resp_cd: `99`, resp_val: `${error.response ? error.response.data.message : error}`, i_log_data: `${JSON.stringify(error.response ? error.response.data.message : {})}`, bsns_cd: 'AUT'})
-        // await inputDB(errorStsToken)
     }
 }
 
