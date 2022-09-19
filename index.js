@@ -78,7 +78,6 @@ server.on('connection', (e) => {
         try {
             if (msgLen > 0) {
                 if (buff.length) {
-                    let incMsg = buff.split("|");
                     callPPATKv2(buff); //through forwarder
                 } else {
                     //errornotmatchlength
@@ -156,6 +155,7 @@ async function callPPATKv2(msg) {
         }
     }
 
+    //Internal Validation
     let imsg;
     let f;
     if (nik === undefined || nik === '') {
@@ -220,19 +220,42 @@ async function callPPATKv2(msg) {
         return;
     }
 
-    let token = await getToken()
-
+    //Check token if existing
+    let checkToken
+    let token
     if (client != undefined) {
         try {
-            let i_log_auth_query = `update mdw_eoh_his 
-            set recv_dt = current_date, sts='1', resp_cd = ${token.data ? `'00'` : `'99'`}, recv_tm = current_time, resp_val = '${token.data ? token.data.access_token : 'Generate Token Failed'}', i_log_data =  ${token.data ? `'${JSON.stringify(token.data)}'` : token ? `'${token}'` : 'null'} , upd_dt = current_date, upd_tm = current_time
-            where trx_id = '${trace_no}' and bsns_cd = 'AUT' and switch_id = 'PATK' and trx_dt = current_date`
-            await client.query(i_log_auth_query);
+            checkToken =  await client.query(`select auth_token from peppatk_token where trx_dt = current_date order by trx_tm desc limit 1;`);
         } catch (err) {
             clientError = err;
         } finally {
             client.off('error', (error) => console.log(error));
         }
+    }
+
+    if (!checkToken || checkToken.rows.length == 0){
+         // If Token not Found, New Generate
+         console.log('Token not found, Getting Token Data ...');
+         token = await getToken() 
+         
+         if (client != undefined) {
+             try {
+                 let i_log_auth_query = `update mdw_eoh_his 
+                 set recv_dt = current_date, sts='1', resp_cd = ${token.data ? `'00'` : `'99'`}, recv_tm = current_time, resp_val = '${token.data ? token.data.access_token : 'Generate Token Failed'}', i_log_data =  ${token.data ? `'${JSON.stringify(token.data)}'` : token ? `'${token}'` : 'null'} , upd_dt = current_date, upd_tm = current_time
+                 where trx_id = '${trace_no}' and bsns_cd = 'AUT' and switch_id = 'PATK' and trx_dt = current_date`
+                 let saveToken = `insert into peppatk_token (auth_token) values ('${token ? JSON.stringify({data: token.data ? token.data : 'Generate Token Failed'}) : 'Generate Token Failed'}');`
+                 await client.query(i_log_auth_query);
+                 await client.query(saveToken)  
+             } catch (err) {
+                 clientError = err;
+             } finally {
+                 client.off('error', (error) => console.log(error));
+             }
+         }
+    } else {
+        // If Token Found
+        token = JSON.parse(checkToken.rows[0].auth_token)
+        console.log('Token Found:', token.data ? token.data.access_token : 'Unidentified Token');
     }
 
     let tokenAuth = token.data && token.data.access_token
@@ -260,7 +283,7 @@ async function callPPATKv2(msg) {
                 'Authorization': 'Bearer ' + tokenAuth
             }
         })
-
+        
         console.log(sendData.data)
         if (sendData.data.message == 'Data Found') {
             rmsg = orig.substring(304, 389);
@@ -277,7 +300,7 @@ async function callPPATKv2(msg) {
         if (client != undefined) {
             try {
                 let i_log_data_query = `update mdw_eoh_his 
-                set recv_dt = current_date, sts='1', resp_cd = '${rmsg.substring(80, 82)}', recv_tm = current_time, resp_val = '${rmsg.substring(89)}', i_log_data = '${sendData.data}', upd_dt = current_date, upd_tm = current_time, hbs_i_log_data = '${rmsg}'
+                set recv_dt = current_date, sts='1', resp_cd = '${rmsg.substring(80, 82)}', recv_tm = current_time, resp_val = '${rmsg.substring(89)}', i_log_data = '${JSON.stringify(sendData.data)}', upd_dt = current_date, upd_tm = current_time, hbs_i_log_data = '${rmsg}'
                 where trx_id = '${trace_no}' and bsns_cd = 'DAT' and switch_id = 'PATK' and trx_dt = current_date`
                 await client.query(i_log_data_query);
             } catch (err) {
@@ -328,12 +351,28 @@ async function callPPATKv2(msg) {
         }
 
         rmsg = strf(rmsg.length + 4).padLeft(4, '0').s + rmsg;
-        console.log("Returning : " + rmsg);
+        console.log("Returning : " + rmsg);       
 
         if (client != undefined) {
             try {
+                // If Token Unidentified, New Generate and Save
+                if (rmsg.substring(80, 82) == '99') {
+                    try {
+                        token = await getToken() 
+                        let i_log_auth_query = `update mdw_eoh_his 
+                        set recv_dt = current_date, sts='1', resp_cd = ${token.data ? `'00'` : `'99'`}, recv_tm = current_time, resp_val = '${token.data ? token.data.access_token : 'Generate Token Failed'}', i_log_data =  ${token.data ? `'${JSON.stringify(token.data)}'` : token ? `'${token}'` : 'null'} , upd_dt = current_date, upd_tm = current_time
+                        where trx_id = '${trace_no}' and bsns_cd = 'AUT' and switch_id = 'PATK' and trx_dt = current_date`
+                        let saveToken = `insert into peppatk_token (auth_token) values ('${token ? JSON.stringify({data: token.data ? token.data : 'Generate Token Failed'}) : 'Generate Token Failed'}');`
+                        console.log('New Token Saved!');
+                        await client.query(i_log_auth_query);
+                        await client.query(saveToken)
+                    } catch (error) {
+                        console.log(error);
+                    }
+                }
+
                 let i_log_data_query = `update mdw_eoh_his 
-                set recv_dt = current_date, sts='1', resp_cd = '${rmsg.substring(80, 82)}', recv_tm = current_time, resp_val = '${rmsg.substring(89)}', i_log_data = '${error.response ? error.response.data : error}', upd_dt = current_date, upd_tm = current_time, hbs_i_log_data = '${rmsg}'
+                set recv_dt = current_date, sts='1', resp_cd = '${rmsg.substring(80, 82)}', recv_tm = current_time, resp_val = '${rmsg.substring(89)}', i_log_data = '${error.response ? JSON.stringify(error.response.data) : error}', upd_dt = current_date, upd_tm = current_time, hbs_i_log_data = '${rmsg}'
                 where trx_id = '${trace_no}' and bsns_cd = 'DAT' and switch_id = 'PATK' and trx_dt = current_date`
                 await client.query(i_log_data_query);
             } catch (err) {
