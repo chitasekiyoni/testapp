@@ -8,7 +8,7 @@ let tokenPG = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYWRtaW5fdXNlciJ9
 require('log-timestamp');
 require('dotenv').config()
 console.log("Server : " + process.env.NODE_ENV);
-console.log(JSON.stringify(node_env));
+console.log(node_env);
 const hostport = 3012;
 
 evntCnt = 0;
