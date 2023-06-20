@@ -359,7 +359,7 @@ async function callPPATKv2(msg) {
         method: 'get',
         url: `${node_env["pgHost"]}/peppatk_token?select=auth_token&trx_dt=eq.${checkTokenDateTime.getDate}&order=trx_tm.desc&limit=1`,
     })
-    checkToken = JSON.parse(checkToken.data[0].auth_token)
+    checkToken = checkToken.data.length > 0 ? JSON.parse(checkToken.data[0].auth_token) : ''
     let token
 
     if (!checkToken || !checkToken.data.access_token || checkToken.length == 0) {
