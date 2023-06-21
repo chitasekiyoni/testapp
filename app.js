@@ -3,13 +3,13 @@ const server = net.createServer();
 const strf = require('string');
 const axios = require('axios');
 const env_var = require('./env_var');
-const node_env = env_var.checkenv(process.env.NODE_ENV);
-let tokenPG = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYWRtaW5fdXNlciJ9.TJPuhKy1q_3BWhgHv76tcM5lYEtDPQOiyy6WrZ7LaUs'
-require('log-timestamp');
 require('dotenv').config()
+require('log-timestamp');
+const node_env = env_var.checkenv(process.env.NODE_ENV);
+const tokenPG = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYWRtaW5fdXNlciJ9.TJPuhKy1q_3BWhgHv76tcM5lYEtDPQOiyy6WrZ7LaUs'
+const hostport = 3012;
 console.log("Server : " + process.env.NODE_ENV);
 console.log(node_env);
-const hostport = 3012;
 
 evntCnt = 0;
 
