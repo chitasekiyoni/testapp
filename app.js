@@ -460,7 +460,6 @@ async function callPPATKv2(msg) {
             "resnd_cnt": 0,
             "hbs_trx_cd": trx_cd,
             "url": `${node_env["pgHost"]}/peppatk_token?select=auth_token&trx_dt=eq.${checkTokenDateTime.getDate}&order=trx_tm.desc&limit=1`,
-            "hbs_o_log_data": null,
             "methode": "GET",
             "timer_cd": null,
             "interval_tm": "30",
@@ -516,7 +515,7 @@ async function callPPATKv2(msg) {
                 i_log_data: JSON.stringify(dataPATK.data),
                 resp_cd: rmsg.substring(80, 82),
                 resp_val: rmsg.substring(89),
-                hbs_o_log_data: rmsg
+                hbs_i_log_data: rmsg
             })
             console.log('updated DB PPATK GET DATA =>', updatePG.data[0] ? updatePG.data[0].ref_id : 'nodata')
         } catch (error) {
@@ -642,7 +641,7 @@ async function callPPATKv2(msg) {
             console.log('updated DB PPATK GET DATA =>', updatePG.data[0] ? updatePG.data[0].ref_id : 'nodata')
         } catch (error) {
 
-            // Tangani error yang mungkin terjadi di sini F
+            // Tangani error yang mungkin terjadi di sini
             console.log(error.message ? error.message : error);
         }
         // Memberikan response kepada socket
