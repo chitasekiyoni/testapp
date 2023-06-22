@@ -240,7 +240,8 @@ async function getTokenPATK() {
             },
             headers: {
                 client_id: node_env["client"]
-            }
+            },
+            timeout: 20000
         })
 
         console.log(`${new Date()} => TOKEN GENERATED ${getToken.data.access_token}`);
@@ -487,7 +488,8 @@ async function callPPATKv2(msg) {
             url: `${node_env["ppatkGetDataURL"]}/api/v1/data/nik/${nik}`,
             headers: {
                 'Authorization': 'Bearer ' + tokenAuth
-            }
+            },
+            timeout: 20000
         })
 
         // Mapping response
